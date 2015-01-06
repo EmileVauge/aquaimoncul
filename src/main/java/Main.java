@@ -58,7 +58,7 @@ public class Main {
                         .get("https://www.kimonolabs.com/api/769se1sw")
                         .queryString("apikey", "ba06ae4c24d69e0f6c1c58452fda6d34")
                         .queryString("date_num_train", date)
-                        .queryString("depart", "départ")
+                        .queryString("depart", "depart")
                         .queryString("cityDepart", depuis[0].getStoparea())
                         .queryString("destination", "destination")
                         .queryString("cityDestination", vers[0].getStoparea())
@@ -113,7 +113,7 @@ public class Main {
                                 .header("accept", "application/json")
                                 .basicAuth(check.getPushbulletApiKey(), "")
                                 .field("type", "link")
-                                .field("title", "Train " + train.getNumero() +" au départ de " + train.getGareDepart() + " à " + train.getHoraireDepart())
+                                .field("title", "Train " + train.getNumero() +" au depart de " + train.getGareDepart() + " à " + train.getHoraireDepart())
                                 .field("url", train.getLien())
                                 .field("body", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(train))
                         .asJson();

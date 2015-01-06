@@ -113,7 +113,7 @@ public class Main {
                                 .header("accept", "application/json")
                                 .basicAuth(check.getPushbulletApiKey(), "")
                                 .field("type", "link")
-                                .field("title", "Train " + train.getNumero() +" au depart de " + train.getGareDepart() + " à " + train.getHoraireDepart())
+                                .field("title", "Train " + train.getNumero() +" au depart de " + train.getGareDepart() + " a " + train.getHoraireDepart())
                                 .field("url", train.getLien())
                                 .field("body", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(train))
                         .asJson();

@@ -32,10 +32,10 @@ public class Main {
     public static void main(String[] args) {
         SparkBase.port(8080);
         ObjectMapper mapper = new ObjectMapper();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssX");
+        DateFormat railradarDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssX");
         DateFormat sncfDateFormat = new SimpleDateFormat("yyyy|MM|dd");
         DateFormat sncfTimeFormat = new SimpleDateFormat("HH|mm");
-        mapper.setDateFormat(df);
+        mapper.setDateFormat(railradarDateFormat);
         ScriptEngineManager factory = new ScriptEngineManager();
         ScriptEngine engine = factory.getEngineByName("groovy");
 
@@ -79,8 +79,7 @@ public class Main {
                     Map trainMap = (Map) map.get("train");
                     train.setNumero((String) trainMap.get("text"));
                     train.setLien((String) trainMap.get("href"));
-                    Map info = (Map) map.get("info");
-                    if (((String) info.get("text")).contains("A l'heure")) {
+                    if (((String)map.get("info")).contains("A l'heure")) {
                         train.setRetard(false);
                     } else {
                         train.setRetard(true);
@@ -94,7 +93,7 @@ public class Main {
                         engine.put("train", train);
                         try {
                             boolean eval = (boolean) engine.eval(filter.getPredicate());
-                            if (!eval){
+                            if (!eval) {
                                 logger.info("Filtering removed train {} with predicate {}", train.getNumero(), filter.getPredicate());
                                 return false;
                             }
@@ -113,10 +112,10 @@ public class Main {
                                 .header("accept", "application/json")
                                 .basicAuth(check.getPushbulletApiKey(), "")
                                 .field("type", "link")
-                                .field("title", "Train " + train.getNumero() +" au depart de " + train.getGareDepart() + " a " + train.getHoraireDepart())
+                                .field("title", "Train " + train.getNumero() + " au depart de " + train.getGareDepart() + " a " + train.getHoraireDepart())
                                 .field("url", train.getLien())
                                 .field("body", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(train))
-                        .asJson();
+                                .asJson();
                         logger.info("Sent notification to pushbullet for train {}", train.getNumero());
                     }
                 }

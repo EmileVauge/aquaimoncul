@@ -12,6 +12,7 @@ import model.Check;
 import model.Filter;
 import model.Gare;
 import model.Train;
+import net.jodah.expiringmap.ExpiringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.SparkBase;
@@ -22,9 +23,10 @@ import javax.script.ScriptException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static spark.Spark.*;
+import static spark.Spark.post;
 
 public class Main {
     static Logger logger = LoggerFactory.getLogger(Main.class);
@@ -37,7 +39,10 @@ public class Main {
         DateFormat sncfTimeFormat = new SimpleDateFormat("HH|mm");
         mapper.setDateFormat(railradarDateFormat);
         ScriptEngineManager factory = new ScriptEngineManager();
-        ScriptEngine engine = factory.getEngineByName("groovy");
+        ScriptEngine engine = factory.getEngineByName("JavaScript");
+        Map<String, Set<Train>> notifications = ExpiringMap.builder()
+                .expiration(3, TimeUnit.HOURS)
+                .build();
 
         post("/check", (req, res) -> {
             logger.info("check begin with body {} ", req.body());
@@ -79,16 +84,26 @@ public class Main {
                     Map trainMap = (Map) map.get("train");
                     train.setNumero((String) trainMap.get("text"));
                     train.setLien((String) trainMap.get("href"));
-                    if (((String)map.get("info")).contains("A l'heure")) {
+                    if (((String) map.get("info")).contains("A l'heure")) {
                         train.setRetard(false);
                     } else {
                         train.setRetard(true);
+                        train.setInfo((String) map.get("info"));
                     }
                     resTrains.add(train);
                 }
 
+                String pushbulletApiKey = check.getPushbulletApiKey();
+                Set<Train> sentNotifications = notifications.get(pushbulletApiKey);
+                if(sentNotifications == null){
+                    sentNotifications = new HashSet<Train>();
+                    notifications.put(pushbulletApiKey, sentNotifications);
+                }
+
                 //filters
+                final Set<Train> finalSentNotifications = sentNotifications;
                 List<Train> filteredTrains = resTrains.stream().filter(train -> {
+                    // remove filtered
                     for (Filter filter : check.getFilters()) {
                         engine.put("train", train);
                         try {
@@ -103,23 +118,33 @@ public class Main {
                         }
                     }
                     return true;
+                }).filter(train -> {
+                    // remove previously sent notification
+                    if(finalSentNotifications.contains(train)){
+                        // already sent, remove it
+                        logger.info("Removed notification already sent {}", train.getNumero());
+                        return false;
+                    }else{
+                        finalSentNotifications.add(train);
+                        return true;
+                    }
                 }).collect(Collectors.toList());
 
                 //pushbullet
-                if (check.getPushbulletApiKey() != null) {
+                if (pushbulletApiKey != null) {
                     for (Train train : filteredTrains) {
                         HttpResponse<JsonNode> response = Unirest.post("https://api.pushbullet.com/v2/pushes")
                                 .header("accept", "application/json")
-                                .basicAuth(check.getPushbulletApiKey(), "")
+                                .basicAuth(pushbulletApiKey, "")
                                 .field("type", "link")
-                                .field("title", "Train " + train.getNumero() + " au depart de " + train.getGareDepart() + " a " + train.getHoraireDepart())
+                                .field("title", "Train de " + train.getHoraireDepart() + " au depart de " + train.getGareDepart() + ": " + train.getInfo())
                                 .field("url", train.getLien())
                                 .field("body", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(train))
                                 .asJson();
                         logger.info("Sent notification to pushbullet for train {}", train.getNumero());
                     }
                 }
-                return resTrains;
+                return filteredTrains;
             } else {
                 if (vers.length == 1) {
                     // return gares

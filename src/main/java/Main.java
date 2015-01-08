@@ -51,9 +51,11 @@ public class Main {
             HttpRequest reqDepuis = Unirest
                     .get("http://www.raildar.fr/json/gares")
                     .queryString("search", check.getDepuis());
+            logger.info("Response from raildar: {}", reqDepuis.asString().getStatusText());
             HttpRequest reqVers = Unirest
                     .get("http://www.raildar.fr/json/gares")
                     .queryString("search", check.getVers());
+            logger.info("Response from raildar: {}", reqVers.asString().getStatusText());
             Gare[] depuis = mapper.readValue(reqDepuis.asBinary().getBody(), Gare[].class);
             Gare[] vers = mapper.readValue(reqVers.asBinary().getBody(), Gare[].class);
             if (depuis.length == 1 && vers.length == 1) {
@@ -69,6 +71,7 @@ public class Main {
                         .queryString("cityDestination", vers[0].getStoparea())
                         .queryString("train_horaire_depart", time)
                         .queryString("next_horaire", time);
+                logger.info("Response from kimono: {}", reqNProchainsTrains.asString().getStatusText());
                 List<Map> trains = JsonPath.read(reqNProchainsTrains.asString().getBody(), "$.results.trains");
                 List<Train> resTrains = new ArrayList<Train>();
                 for (Map map : trains) {

@@ -84,7 +84,8 @@ public class Main {
                     Map trainMap = (Map) map.get("train");
                     train.setNumero((String) trainMap.get("text"));
                     train.setLien((String) trainMap.get("href"));
-                    if (((String) map.get("info")).contains("A l'heure")) {
+                    Map info = (Map) map.get("info");
+                    if (((String) info.get("text")).contains("A l'heure")) {
                         train.setRetard(false);
                     } else {
                         train.setRetard(true);

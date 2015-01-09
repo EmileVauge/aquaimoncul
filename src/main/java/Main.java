@@ -75,26 +75,30 @@ public class Main {
                 List<Map> trains = JsonPath.read(reqNProchainsTrains.asString().getBody(), "$.results.trains");
                 List<Train> resTrains = new ArrayList<Train>();
                 for (Map map : trains) {
-                    Train train = new Train();
-                    String gare = (String) map.get("gares");
-                    String[] splitGare = gare.split("\\n");
-                    train.setGareDepart(splitGare[0]);
-                    train.setGareArrivee(splitGare[1]);
-                    String horaires = (String) map.get("horaires");
-                    String[] splitHoraires = horaires.split(" \\n");
-                    train.setHoraireDepart(splitHoraires[0]);
-                    train.setHoraireArrivee(splitHoraires[1]);
-                    Map trainMap = (Map) map.get("train");
-                    train.setNumero((String) trainMap.get("text"));
-                    train.setLien((String) trainMap.get("href"));
-                    Map info = (Map) map.get("info");
-                    if (((String) info.get("text")).contains("A l'heure")) {
-                        train.setRetard(false);
-                    } else {
-                        train.setRetard(true);
-                        train.setInfo((String) map.get("info"));
+                    try {
+                        Train train = new Train();
+                        String gare = (String) map.get("gares");
+                        String[] splitGare = gare.split("\\n");
+                        train.setGareDepart(splitGare[0]);
+                        train.setGareArrivee(splitGare[1]);
+                        String horaires = (String) map.get("horaires");
+                        String[] splitHoraires = horaires.split(" \\n");
+                        train.setHoraireDepart(splitHoraires[0]);
+                        train.setHoraireArrivee(splitHoraires[1]);
+                        Map trainMap = (Map) map.get("train");
+                        train.setNumero((String) trainMap.get("text"));
+                        train.setLien((String) trainMap.get("href"));
+                        Map info = (Map) map.get("info");
+                        if (((String) info.get("text")).contains("A l'heure")) {
+                            train.setRetard(false);
+                        } else {
+                            train.setRetard(true);
+                            train.setInfo((String) map.get("info"));
+                        }
+                        resTrains.add(train);
+                    } catch (Exception e) {
+                                logger.error("Error building train from remote API {}", map.toString());
                     }
-                    resTrains.add(train);
                 }
 
                 String pushbulletApiKey = check.getPushbulletApiKey();
